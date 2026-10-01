@@ -120,10 +120,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (!url) {
           continue
         }
-        const nextGallery = product
-          ? [url, ...product.gallery.filter((src) => src !== product.image && src !== url)]
-          : [url]
-        updateProduct(productId, { image: url, gallery: nextGallery })
+        updateProduct(productId, (item) => ({
+          image: url,
+          gallery: [url, ...item.gallery.filter((src) => src !== item.image && src !== url)],
+        }))
         await deleteCatalogImage(productId)
         setImages((current) => {
           const next = { ...current }
@@ -234,7 +234,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     try {
       const dataUrl = await compressCatalogImage(file)
       const product = products.find((item) => item.id === productId)
-      const published = await publishCatalogImage(productId, dataUrl, 'cover', product?.image)
+      const currentPath = product?.image.split('?')[0]
+      const original = baseProducts.find((item) => item.id === productId)
+      const originalPath =
+        currentPath?.startsWith('/images/uploads/') || original?.image === currentPath
+          ? currentPath
+          : undefined
+      const published = await publishCatalogImage(productId, dataUrl, 'cover', originalPath)
       if (!published) {
         await saveCatalogImage(productId, dataUrl)
         setImages((current) => ({ ...current, [productId]: dataUrl }))
@@ -243,17 +249,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           : 'Esta foto solo se ve aquí. Ábrela con npm run dev y cámbiala de nuevo para que salga en la web pública.'
       }
 
-      const nextGallery = product
-        ? [published, ...product.gallery.filter((src) => src !== product.image && src !== published)]
-        : [published]
-
       await deleteCatalogImage(productId)
       setImages((current) => {
         const next = { ...current }
         delete next[productId]
         return next
       })
-      updateProduct(productId, { image: published, gallery: nextGallery })
+      updateProduct(productId, (product) => ({
+        image: published,
+        gallery: [
+          published,
+          ...product.gallery.filter((src) => src !== product.image && src !== published),
+        ],
+      }))
       return null
     } catch {
       return 'No se pudo guardar la imagen. Intenta con otro archivo.'
@@ -294,8 +302,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     try {
       const dataUrl = await compressCatalogImage(file)
       const published = await publishCatalogImage(productId, dataUrl, 'gallery')
-      if (published && product) {
-        updateProduct(productId, { gallery: [...product.gallery, published] })
+      if (published) {
+        updateProduct(productId, (product) =>
+          product.gallery.includes(published)
+            ? {}
+            : { gallery: [...product.gallery, published] },
+        )
         return null
       }
       const next = [...extras, dataUrl]
@@ -316,12 +328,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const next = (galleries[productId] ?? []).filter((item) => item !== src)
     await saveCatalogGallery(productId, next)
     setGalleries((map) => ({ ...map, [productId]: next }))
-    const product = products.find((item) => item.id === productId)
-    if (product) {
-      updateProduct(productId, {
-        gallery: product.gallery.filter((item) => item !== src && item !== stripBase(src)),
-      })
-    }
+    updateProduct(productId, (product) => ({
+      gallery: product.gallery.filter((item) => item !== src && item !== stripBase(src)),
+    }))
   }, [galleries, products, updateProduct])
 
   const value = useMemo<AdminContextValue>(

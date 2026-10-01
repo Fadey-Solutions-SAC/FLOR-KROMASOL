@@ -8,7 +8,7 @@ import { linesToList } from '../../utils/catalogStore'
 import { AdminProductEditor } from './AdminProductEditor'
 
 export function AdminPanel() {
-  const { panelOpen, closePanel, logout } = useAdmin()
+  const { panelOpen, closePanel, logout, replaceProductImage, addGalleryImage } = useAdmin()
   const { products, addProduct } = useCatalog()
   const [section, setSection] = useState<(typeof CATEGORIES)[number]>('Todos')
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -25,6 +25,9 @@ export function AdminPanel() {
   const [newFeatures, setNewFeatures] = useState('')
   const [newDetails, setNewDetails] = useState('')
   const [newSection, setNewSection] = useState<(typeof PRODUCT_SECTIONS)[number]>('Suplementos')
+  const [newCoverFile, setNewCoverFile] = useState<File | null>(null)
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([])
+  const [savingNew, setSavingNew] = useState(false)
 
   if (!panelOpen) {
     return null
@@ -50,6 +53,9 @@ export function AdminPanel() {
     setNewLongDescription('')
     setNewFeatures('')
     setNewDetails('')
+    setNewCoverFile(null)
+    setNewGalleryFiles([])
+    setSavingNew(false)
   }
 
   return (
@@ -132,8 +138,30 @@ export function AdminPanel() {
                   setMessage('Revisa nombre, precio y stock para agregar el producto.')
                   return
                 }
+                const coverFile = newCoverFile
+                const galleryFiles = [...newGalleryFiles]
+                setEditingId(created.id)
                 resetNewProduct()
-                setMessage(`Producto agregado en ${newCategory}: ${created.name}`)
+                setMessage(`Producto agregado en ${newCategory}: ${created.name}. Ya puedes editarlo y cargar imágenes.`)
+                if (coverFile || galleryFiles.length > 0) {
+                  setSavingNew(true)
+                  void (async () => {
+                    if (coverFile) {
+                      const error = await replaceProductImage(created.id, coverFile)
+                      if (error) {
+                        setMessage(error)
+                      }
+                    }
+                    for (const file of galleryFiles) {
+                      const error = await addGalleryImage(created.id, file)
+                      if (error) {
+                        setMessage(error)
+                        break
+                      }
+                    }
+                    setSavingNew(false)
+                  })()
+                }
               }}
             >
               <p className="font-semibold text-plum sm:col-span-2">
@@ -253,8 +281,29 @@ export function AdminPanel() {
                   className="mt-1 min-h-24 w-full rounded-2xl border border-pink-soft bg-surface px-4 py-3 text-sm"
                 />
               </label>
+              <label className="text-sm text-plum">
+                Imagen principal
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => setNewCoverFile(event.target.files?.[0] ?? null)}
+                  className="mt-1 w-full text-sm"
+                />
+              </label>
+              <label className="text-sm text-plum">
+                Más imágenes
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(event) => setNewGalleryFiles(Array.from(event.target.files ?? []))}
+                  className="mt-1 w-full text-sm"
+                />
+              </label>
               <div className="flex gap-2 sm:col-span-2">
-                <Button type="submit">Guardar producto</Button>
+                <Button type="submit" disabled={savingNew}>
+                  {savingNew ? 'Guardando…' : 'Guardar producto'}
+                </Button>
                 <Button variant="secondary" type="button" onClick={resetNewProduct}>
                   Cancelar
                 </Button>

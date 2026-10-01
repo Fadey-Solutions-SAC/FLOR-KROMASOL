@@ -112,6 +112,15 @@ export function AdminProductEditor({
           <p className="text-sm font-semibold text-magenta">{formatPrice(product.price)}</p>
         </div>
         <Button
+          variant="secondary"
+          className="shrink-0 px-3"
+          disabled={busy}
+          icon={<ImagePlus size={16} />}
+          onClick={() => coverInput.current?.click()}
+        >
+          Foto
+        </Button>
+        <Button
           variant={editing ? 'secondary' : 'primary'}
           className="shrink-0 px-4"
           icon={editing ? undefined : <Pencil size={16} />}
@@ -120,6 +129,48 @@ export function AdminProductEditor({
           {editing ? 'Cerrar' : 'Editar'}
         </Button>
       </div>
+
+      <input
+        ref={coverInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={async (event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (!file) {
+            return
+          }
+          setBusy(true)
+          const error = await replaceProductImage(product.id, file)
+          setBusy(false)
+          onMessage(error ?? `Imagen principal actualizada: ${product.name}`)
+        }}
+      />
+      <input
+        ref={galleryInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="sr-only"
+        onChange={async (event) => {
+          const files = Array.from(event.target.files ?? [])
+          event.target.value = ''
+          if (files.length === 0) {
+            return
+          }
+          setBusy(true)
+          let lastError: string | null = null
+          for (const file of files) {
+            lastError = await addGalleryImage(product.id, file)
+            if (lastError) {
+              break
+            }
+          }
+          setBusy(false)
+          onMessage(lastError ?? `Imágenes de presentación agregadas a ${product.name}`)
+        }}
+      />
 
       {editing && (
         <>
@@ -147,47 +198,6 @@ export function AdminProductEditor({
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <input
-            ref={coverInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={async (event) => {
-              const file = event.target.files?.[0]
-              event.target.value = ''
-              if (!file) {
-                return
-              }
-              setBusy(true)
-              const error = await replaceProductImage(product.id, file)
-              setBusy(false)
-              onMessage(error ?? `Imagen principal actualizada: ${product.name}`)
-            }}
-          />
-          <input
-            ref={galleryInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="sr-only"
-            onChange={async (event) => {
-              const files = Array.from(event.target.files ?? [])
-              event.target.value = ''
-              if (files.length === 0) {
-                return
-              }
-              setBusy(true)
-              let lastError: string | null = null
-              for (const file of files) {
-                lastError = await addGalleryImage(product.id, file)
-                if (lastError) {
-                  break
-                }
-              }
-              setBusy(false)
-              onMessage(lastError ?? `Imágenes de presentación agregadas a ${product.name}`)
-            }}
-          />
           <Button className="px-4" disabled={busy} onClick={() => coverInput.current?.click()}>
             {busy ? 'Guardando…' : 'Cambiar imagen principal'}
           </Button>

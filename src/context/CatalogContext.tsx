@@ -11,6 +11,8 @@ import { PRODUCT_SECTIONS } from '../data/categories'
 import type { Product } from '../types'
 import {
   loadLiveCatalog,
+  mergePublishedCatalog,
+  NEW_PRODUCT_IMAGE,
   persistCatalog,
   slugify,
   syncProductFlags,
@@ -32,11 +34,13 @@ type NewProductInput = {
   details?: string[]
 }
 
+type ProductPatch = CatalogPatch | ((product: Product) => CatalogPatch)
+
 type CatalogContextValue = {
   products: Product[]
   getProductBySlug: (slug: string) => Product | undefined
   getOfferProducts: () => Product[]
-  updateProduct: (productId: number, patch: CatalogPatch) => void
+  updateProduct: (productId: number, patch: ProductPatch) => void
   addProduct: (input: NewProductInput) => Product | null
 }
 
@@ -45,11 +49,11 @@ const CatalogContext = createContext<CatalogContextValue | null>(null)
 export function CatalogProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(() => loadLiveCatalog())
 
-  const commit = useCallback((next: Product[]) => {
+  const persistAndSet = useCallback((next: Product[]) => {
     const synced = next.map((product) => syncProductFlags(product))
     persistCatalog(synced)
     void publishLiveCatalog(synced)
-    setProducts(synced)
+    return synced
   }, [])
 
   useEffect(() => {
@@ -59,7 +63,15 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         if (!active || !published || published.length === 0) {
           return
         }
-        setProducts(published.map((product) => syncProductFlags(product)))
+        setProducts((current) => {
+          const merged = mergePublishedCatalog(published, current)
+          const publishedIds = new Set(published.map((product) => product.id))
+          if (merged.some((product) => !publishedIds.has(product.id))) {
+            persistCatalog(merged)
+            void publishLiveCatalog(merged)
+          }
+          return merged
+        })
       })
       .catch(() => undefined)
     return () => {
@@ -68,14 +80,20 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateProduct = useCallback(
-    (productId: number, patch: CatalogPatch) => {
-      commit(
-        products.map((product) =>
-          product.id === productId ? { ...product, ...patch } : product,
+    (productId: number, patch: ProductPatch) => {
+      setProducts((current) =>
+        persistAndSet(
+          current.map((product) => {
+            if (product.id !== productId) {
+              return product
+            }
+            const resolved = typeof patch === 'function' ? patch(product) : patch
+            return { ...product, ...resolved }
+          }),
         ),
       )
     },
-    [commit, products],
+    [persistAndSet],
   )
 
   const addProduct = useCallback(
@@ -92,48 +110,51 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         return null
       }
 
-      const id = Math.max(0, ...products.map((product) => product.id)) + 1
-      const slugBase = slugify(`${name}-${presentation}`) || `producto-${id}`
-      const slug = products.some((product) => product.slug === slugBase)
-        ? `${slugBase}-${id}`
-        : slugBase
+      let created: Product | null = null
+      setProducts((current) => {
+        const id = Math.max(0, ...current.map((product) => product.id)) + 1
+        const slugBase = slugify(`${name}-${presentation}`) || `producto-${id}`
+        const slug = current.some((product) => product.slug === slugBase)
+          ? `${slugBase}-${id}`
+          : slugBase
+        const shortDescription =
+          input.shortDescription.trim() || 'Producto Andromeda para tu rutina diaria.'
+        const description =
+          input.description?.trim() ||
+          shortDescription ||
+          'Producto del catálogo Andromeda. Consulta detalles y disponibilidad por WhatsApp.'
+        const features = (input.features ?? []).map((item) => item.trim()).filter(Boolean)
+        const details = (input.details ?? []).map((item) => item.trim()).filter(Boolean)
 
-      const shortDescription =
-        input.shortDescription.trim() || 'Producto Andromeda para tu rutina diaria.'
-      const description =
-        input.description?.trim() ||
-        shortDescription ||
-        'Producto del catálogo Andromeda. Consulta detalles y disponibilidad por WhatsApp.'
-      const features = (input.features ?? []).map((item) => item.trim()).filter(Boolean)
-      const details = (input.details ?? []).map((item) => item.trim()).filter(Boolean)
+        created = syncProductFlags({
+          id,
+          name,
+          slug,
+          category,
+          categories: [category],
+          presentation: presentation || '1 unidad',
+          flavor: input.flavor?.trim() || undefined,
+          price: input.price,
+          oldPrice: input.oldPrice,
+          stock: input.stock,
+          image: NEW_PRODUCT_IMAGE,
+          gallery: [NEW_PRODUCT_IMAGE],
+          shortDescription,
+          description,
+          features: features.length > 0 ? features : ['Andromeda'],
+          details: details.length > 0 ? details : ['Consulta las indicaciones del envase.'],
+          featured: false,
+          offer: false,
+          isNew: true,
+          available: input.stock > 0,
+        })
 
-      const product = syncProductFlags({
-        id,
-        name,
-        slug,
-        category,
-        categories: [category],
-        presentation: presentation || '1 unidad',
-        flavor: input.flavor?.trim() || undefined,
-        price: input.price,
-        oldPrice: input.oldPrice,
-        stock: input.stock,
-        image: '/images/products/andromeda-630g.jpg',
-        gallery: ['/images/products/andromeda-630g.jpg'],
-        shortDescription,
-        description,
-        features: features.length > 0 ? features : ['Andromeda'],
-        details: details.length > 0 ? details : ['Consulta las indicaciones del envase.'],
-        featured: false,
-        offer: false,
-        isNew: true,
-        available: input.stock > 0,
+        return persistAndSet([...current, created])
       })
 
-      commit([...products, product])
-      return product
+      return created
     },
-    [commit, products],
+    [persistAndSet],
   )
 
   const value = useMemo<CatalogContextValue>(

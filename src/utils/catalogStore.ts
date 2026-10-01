@@ -2,6 +2,7 @@ import { products as baseProducts } from '../data/products'
 import type { Product } from '../types'
 
 export const CATALOG_STORAGE_KEY = 'andromeda-catalog-data-v1'
+export const NEW_PRODUCT_IMAGE = '/images/products/producto-sin-foto.svg'
 
 export type CatalogPatch = Partial<
   Pick<
@@ -85,13 +86,39 @@ function isProductLike(value: unknown): value is Product {
   )
 }
 
+function extraProducts(candidates: Product[], occupiedIds: Set<number>): Product[] {
+  const unique = new Map<number, Product>()
+  candidates.forEach((product) => {
+    if (!occupiedIds.has(product.id)) {
+      unique.set(product.id, syncProductFlags(product))
+    }
+  })
+  return [...unique.values()]
+}
+
 export function loadLiveCatalog(): Product[] {
   const stored = readStoredCatalog()
+  const baseIds = new Set(baseProducts.map((product) => product.id))
   const updated = baseProducts.map((product) => {
     const patch = stored.updates[String(product.id)]
     return syncProductFlags({ ...product, ...patch })
   })
-  const extras = stored.extras.map((product) => syncProductFlags(product))
+  return [...updated, ...extraProducts(stored.extras, baseIds)]
+}
+
+export function mergePublishedCatalog(published: Product[], live: Product[] = []): Product[] {
+  const stored = readStoredCatalog()
+  const publishedIds = new Set(published.map((product) => product.id))
+  const liveById = new Map(live.map((product) => [product.id, product]))
+  const updated = published.map((product) => {
+    const liveProduct = liveById.get(product.id)
+    if (liveProduct && !baseProducts.some((item) => item.id === product.id)) {
+      return syncProductFlags(liveProduct)
+    }
+    const patch = stored.updates[String(product.id)]
+    return syncProductFlags({ ...product, ...patch })
+  })
+  const extras = extraProducts([...stored.extras, ...live], publishedIds)
   return [...updated, ...extras]
 }
 
@@ -103,7 +130,14 @@ export function persistCatalog(liveProducts: Product[]) {
   liveProducts.forEach((product) => {
     const synced = syncProductFlags(product)
     if (!baseIds.has(synced.id)) {
-      extras.push(synced)
+      const image = persistableSrc(synced.image) ?? NEW_PRODUCT_IMAGE
+      extras.push({
+        ...synced,
+        image,
+        gallery: persistableImages(synced.gallery).length > 0
+          ? persistableImages(synced.gallery)
+          : [image],
+      })
       return
     }
 

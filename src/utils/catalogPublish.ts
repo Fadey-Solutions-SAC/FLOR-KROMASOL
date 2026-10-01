@@ -30,8 +30,12 @@ export async function publishLiveCatalog(products: Product[]) {
 
   const payload = products.map((product) => ({
     ...product,
-    image: stripBase(product.image),
-    gallery: product.gallery.map((src) => stripBase(src)).filter((src) => !src.startsWith('data:')),
+    image: stripBase(product.image).startsWith('data:')
+      ? '/images/products/producto-sin-foto.svg'
+      : stripBase(product.image),
+    gallery: product.gallery
+      .map((src) => stripBase(src))
+      .filter((src) => !src.startsWith('data:')),
   }))
 
   try {
