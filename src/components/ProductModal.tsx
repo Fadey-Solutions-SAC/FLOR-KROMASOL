@@ -9,6 +9,7 @@ import { QuantitySelector } from './ui/QuantitySelector'
 import { ReserveButton } from './ReserveButton'
 import { StockBadge } from './StockBadge'
 import { useStoreUi } from '../context/StoreUiContext'
+import { ProductGallery } from './ProductGallery'
 import { applyCatalogImages } from '../utils/productMedia'
 import { useAdmin } from '../context/AdminContext'
 import { useCatalog } from '../context/CatalogContext'
@@ -27,15 +28,10 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
     : null
   const resolved = liveProduct ? applyCatalogImages(liveProduct, images, galleries) : null
   const [quantity, setQuantity] = useState(1)
-  const [activeImage, setActiveImage] = useState('')
 
   useEffect(() => {
-    if (!resolved) {
-      return
-    }
     setQuantity(1)
-    setActiveImage(resolved.gallery[0] ?? resolved.image)
-  }, [resolved, images, galleries])
+  }, [resolved?.id])
 
   useEffect(() => {
     if (!product) {
@@ -89,29 +85,8 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
-            <div className="rounded-[1.4rem] bg-surface p-4">
-              <img
-                src={activeImage}
-                alt={`${resolved.name} ${resolved.presentation}`}
-                className="aspect-square w-full object-contain"
-              />
-            </div>
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {resolved.gallery.map((image, index) => (
-                <button
-                  key={image}
-                  type="button"
-                  onClick={() => setActiveImage(image)}
-                  aria-label={`Ver imagen ${index + 1} de ${resolved.name}`}
-                  className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border ${
-                    activeImage === image ? 'border-magenta' : 'border-transparent'
-                  }`}
-                >
-                  <img src={image} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
+          <ProductGallery product={resolved} />
+        </div>
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-magenta">

@@ -37,6 +37,9 @@ import {
   type CatalogImageMap,
 } from '../utils/catalogImages'
 import { setCatalogGalleryOverrides, setCatalogImageOverrides } from '../utils/productMedia'
+import { publishCatalogImage } from '../utils/catalogPublish'
+import { useCatalog } from './CatalogContext'
+import { products as baseProducts } from '../data/products'
 
 type AdminContextValue = {
   loginOpen: boolean
@@ -61,6 +64,7 @@ type AdminContextValue = {
 const AdminContext = createContext<AdminContextValue | null>(null)
 
 export function AdminProvider({ children }: { children: ReactNode }) {
+  const { products, updateProduct } = useCatalog()
   const [loginOpen, setLoginOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [authenticated, setAuthenticated] = useState(() => hasAdminSession())
@@ -196,13 +200,30 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     try {
       const dataUrl = await compressCatalogImage(file)
-      await saveCatalogImage(productId, dataUrl)
-      setImages((current) => ({ ...current, [productId]: dataUrl }))
+      const published = await publishCatalogImage(productId, dataUrl, 'cover')
+      const url = published ?? dataUrl
+      const product = products.find((item) => item.id === productId)
+      const nextGallery = product
+        ? [url, ...product.gallery.filter((src) => src !== product.image && src !== url)]
+        : [url]
+
+      if (published) {
+        await deleteCatalogImage(productId)
+        setImages((current) => {
+          const next = { ...current }
+          delete next[productId]
+          return next
+        })
+        updateProduct(productId, { image: published, gallery: nextGallery })
+      } else {
+        await saveCatalogImage(productId, dataUrl)
+        setImages((current) => ({ ...current, [productId]: dataUrl }))
+      }
       return null
     } catch {
       return 'No se pudo guardar la imagen. Intenta con otro archivo.'
     }
-  }, [])
+  }, [products, updateProduct])
 
   const restoreProductImage = useCallback(async (productId: number) => {
     if (!hasAdminSession()) {
@@ -214,7 +235,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       delete next[productId]
       return next
     })
-  }, [])
+    const original = baseProducts.find((item) => item.id === productId)
+    if (original) {
+      updateProduct(productId, { image: original.image, gallery: original.gallery })
+    }
+  }, [updateProduct])
 
   const addGalleryImage = useCallback(async (productId: number, file: File) => {
     if (!hasAdminSession()) {
@@ -224,21 +249,28 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       return 'Solo se aceptan JPG, PNG o WEBP de hasta 8 MB.'
     }
 
-    const current = galleries[productId] ?? []
-    if (current.length >= ADMIN_MAX_GALLERY_IMAGES) {
+    const product = products.find((item) => item.id === productId)
+    const extras = galleries[productId] ?? []
+    const currentCount = (product?.gallery.length ?? 0) + extras.length
+    if (currentCount >= ADMIN_MAX_GALLERY_IMAGES) {
       return `Puedes agregar hasta ${ADMIN_MAX_GALLERY_IMAGES} imágenes extra de presentación.`
     }
 
     try {
       const dataUrl = await compressCatalogImage(file)
-      const next = [...current, dataUrl]
+      const published = await publishCatalogImage(productId, dataUrl, 'gallery')
+      if (published && product) {
+        updateProduct(productId, { gallery: [...product.gallery, published] })
+        return null
+      }
+      const next = [...extras, dataUrl]
       await saveCatalogGallery(productId, next)
       setGalleries((map) => ({ ...map, [productId]: next }))
       return null
     } catch {
       return 'No se pudo guardar la imagen. Intenta con otro archivo.'
     }
-  }, [galleries])
+  }, [galleries, products, updateProduct])
 
   const removeGalleryImage = useCallback(async (productId: number, src: string) => {
     if (!hasAdminSession()) {

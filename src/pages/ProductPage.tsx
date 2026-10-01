@@ -12,6 +12,7 @@ import { ProductCard } from '../components/ProductCard'
 import { ReserveButton } from '../components/ReserveButton'
 import { StockBadge } from '../components/StockBadge'
 import { useStoreUi } from '../context/StoreUiContext'
+import { ProductGallery } from '../components/ProductGallery'
 import { withBase } from '../utils/baseUrl'
 
 export function ProductPage() {
@@ -22,15 +23,10 @@ export function ProductPage() {
   const product = baseProduct ? applyCatalogImages(baseProduct, images, galleries) : undefined
   const { handleAddToCart, handleProductWhatsApp } = useStoreUi()
   const [quantity, setQuantity] = useState(1)
-  const [activeImage, setActiveImage] = useState(product?.gallery[0] ?? product?.image ?? '')
 
   useEffect(() => {
-    if (!product) {
-      return
-    }
     setQuantity(1)
-    setActiveImage(product.gallery[0] ?? product.image)
-  }, [product, images, galleries])
+  }, [product?.id])
 
   const related = useMemo(
     () => products.filter((item) => item.slug !== product?.slug).slice(0, 3),
@@ -50,7 +46,6 @@ export function ProductPage() {
   }
 
   const discount = getDiscountPercent(product)
-  const currentImage = activeImage || product.image
   const inStock = product.available && product.stock > 0
   const maxQty = Math.max(1, product.stock)
 
@@ -68,28 +63,7 @@ export function ProductPage() {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
         <div>
-          <div className="rounded-[1.6rem] bg-surface p-5">
-            <img
-              src={currentImage}
-              alt={`${product.name} ${product.presentation}`}
-              className="aspect-square w-full object-contain"
-            />
-          </div>
-          <div className="mt-3 flex gap-2">
-            {product.gallery.map((image, index) => (
-                <button
-                  key={image}
-                  type="button"
-                  onClick={() => setActiveImage(image)}
-                  aria-label={`Ver imagen ${index + 1} de ${product.name}`}
-                  className={`h-16 w-16 overflow-hidden rounded-xl border ${
-                    currentImage === image ? 'border-magenta' : 'border-transparent'
-                  }`}
-                >
-                <img src={image} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
+          <ProductGallery product={product} />
         </div>
 
         <div>

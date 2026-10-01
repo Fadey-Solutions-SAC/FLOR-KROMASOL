@@ -129,6 +129,10 @@ export function persistCatalog(liveProducts: Product[]) {
     if (synced.description !== original.description) patch.description = synced.description
     if (!sameList(synced.features, original.features)) patch.features = synced.features
     if (!sameList(synced.details, original.details)) patch.details = synced.details
+    const persistableImage = persistableSrc(synced.image)
+    if (persistableImage && persistableImage !== original.image) {
+      patch.image = persistableImage
+    }
     const persistableGallery = persistableImages(synced.gallery)
     if (!sameList(persistableGallery, original.gallery)) patch.gallery = persistableGallery
     if (synced.featured !== original.featured) patch.featured = synced.featured
@@ -147,8 +151,15 @@ function sameList(left: string[] = [], right: string[] = []): boolean {
   return left.length === right.length && left.every((item, index) => item === right[index])
 }
 
+function persistableSrc(src?: string): string | undefined {
+  if (!src || src.startsWith('data:')) {
+    return undefined
+  }
+  return src
+}
+
 function persistableImages(images: string[] = []): string[] {
-  return images.filter((src) => src && !src.startsWith('data:'))
+  return images.filter((src) => persistableSrc(src))
 }
 
 export function linesToList(value: string): string[] {

@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -15,6 +16,7 @@ import {
   syncProductFlags,
   type CatalogPatch,
 } from '../utils/catalogStore'
+import { loadPublishedCatalog, publishLiveCatalog } from '../utils/catalogPublish'
 
 type NewProductInput = {
   name: string
@@ -46,7 +48,23 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const commit = useCallback((next: Product[]) => {
     const synced = next.map((product) => syncProductFlags(product))
     persistCatalog(synced)
+    void publishLiveCatalog(synced)
     setProducts(synced)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    loadPublishedCatalog()
+      .then((published) => {
+        if (!active || !published || published.length === 0) {
+          return
+        }
+        setProducts(published.map((product) => syncProductFlags(product)))
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
   }, [])
 
   const updateProduct = useCallback(
