@@ -1,36 +1,55 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { CATEGORIES, PRODUCT_SECTIONS } from '../../data/categories'
 import { Button } from '../ui/Button'
 import { useAdmin } from '../../context/AdminContext'
 import { useCatalog } from '../../context/CatalogContext'
-import { stockLabel } from '../../utils/catalogStore'
+import { linesToList } from '../../utils/catalogStore'
+import { AdminProductEditor } from './AdminProductEditor'
 
 export function AdminPanel() {
-  const { panelOpen, closePanel, logout, images, replaceProductImage, restoreProductImage } =
-    useAdmin()
-  const { products, updateProduct, addProduct } = useCatalog()
+  const { panelOpen, closePanel, logout } = useAdmin()
+  const { products, addProduct } = useCatalog()
   const [section, setSection] = useState<(typeof CATEGORIES)[number]>('Todos')
   const [message, setMessage] = useState<string | null>(null)
-  const [busyId, setBusyId] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPresentation, setNewPresentation] = useState('')
+  const [newFlavor, setNewFlavor] = useState('')
   const [newPrice, setNewPrice] = useState('169.90')
   const [newOldPrice, setNewOldPrice] = useState('')
   const [newStock, setNewStock] = useState('1')
   const [newDescription, setNewDescription] = useState('')
+  const [newLongDescription, setNewLongDescription] = useState('')
+  const [newFeatures, setNewFeatures] = useState('')
+  const [newDetails, setNewDetails] = useState('')
   const [newSection, setNewSection] = useState<(typeof PRODUCT_SECTIONS)[number]>('Suplementos')
-  const inputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   if (!panelOpen) {
     return null
   }
 
   const visibleProducts = products.filter(
-    (product) => section === 'Todos' || product.categories.includes(section) || product.category === section,
+    (product) =>
+      section === 'Todos' ||
+      product.categories.includes(section) ||
+      product.category === section,
   )
   const newCategory = section === 'Todos' ? newSection : section
+
+  const resetNewProduct = () => {
+    setAdding(false)
+    setNewName('')
+    setNewPresentation('')
+    setNewFlavor('')
+    setNewPrice('169.90')
+    setNewOldPrice('')
+    setNewStock('1')
+    setNewDescription('')
+    setNewLongDescription('')
+    setNewFeatures('')
+    setNewDetails('')
+  }
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
@@ -44,7 +63,7 @@ export function AdminPanel() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-panel-title"
-        className="animate-fade-up relative max-h-[92vh] w-full overflow-y-auto rounded-t-[1.8rem] bg-white p-5 shadow-2xl sm:max-w-3xl sm:rounded-[1.8rem]"
+        className="animate-fade-up relative max-h-[92vh] w-full overflow-y-auto rounded-t-[1.8rem] bg-white p-5 shadow-2xl sm:max-w-4xl sm:rounded-[1.8rem]"
       >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -52,8 +71,7 @@ export function AdminPanel() {
               Administrar catálogo
             </h2>
             <p className="mt-1 text-sm text-ink/65">
-              Cambia imágenes, stock y precios por sección. Si el stock llega a 0, el cliente podrá
-              reservar para la próxima.
+              Edita toda la ficha del producto: textos, precios, stock e imágenes de presentación.
             </p>
           </div>
           <button
@@ -96,23 +114,21 @@ export function AdminPanel() {
                 const created = addProduct({
                   name: newName,
                   presentation: newPresentation,
+                  flavor: newFlavor,
                   category: newCategory,
                   price: Number(newPrice),
                   oldPrice: newOldPrice ? Number(newOldPrice) : null,
                   stock: Number(newStock),
                   shortDescription: newDescription,
+                  description: newLongDescription,
+                  features: linesToList(newFeatures),
+                  details: linesToList(newDetails),
                 })
                 if (!created) {
                   setMessage('Revisa nombre, precio y stock para agregar el producto.')
                   return
                 }
-                setAdding(false)
-                setNewName('')
-                setNewPresentation('')
-                setNewPrice('169.90')
-                setNewOldPrice('')
-                setNewStock('1')
-                setNewDescription('')
+                resetNewProduct()
                 setMessage(`Producto agregado en ${newCategory}: ${created.name}`)
               }}
             >
@@ -134,6 +150,15 @@ export function AdminPanel() {
                   value={newPresentation}
                   onChange={(event) => setNewPresentation(event.target.value)}
                   placeholder="630 g"
+                  className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-4 text-sm"
+                />
+              </label>
+              <label className="text-sm text-plum">
+                Sabor
+                <input
+                  value={newFlavor}
+                  onChange={(event) => setNewFlavor(event.target.value)}
+                  placeholder="Fresas con crema"
                   className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-4 text-sm"
                 />
               </label>
@@ -199,9 +224,34 @@ export function AdminPanel() {
                   className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-4 text-sm"
                 />
               </label>
+              <label className="text-sm text-plum sm:col-span-2">
+                Descripción de la ficha
+                <textarea
+                  value={newLongDescription}
+                  onChange={(event) => setNewLongDescription(event.target.value)}
+                  className="mt-1 min-h-24 w-full rounded-2xl border border-pink-soft bg-surface px-4 py-3 text-sm"
+                />
+              </label>
+              <label className="text-sm text-plum">
+                Etiquetas (una por línea)
+                <textarea
+                  value={newFeatures}
+                  onChange={(event) => setNewFeatures(event.target.value)}
+                  placeholder="Vitaminas"
+                  className="mt-1 min-h-24 w-full rounded-2xl border border-pink-soft bg-surface px-4 py-3 text-sm"
+                />
+              </label>
+              <label className="text-sm text-plum">
+                Información del producto (una por línea)
+                <textarea
+                  value={newDetails}
+                  onChange={(event) => setNewDetails(event.target.value)}
+                  className="mt-1 min-h-24 w-full rounded-2xl border border-pink-soft bg-surface px-4 py-3 text-sm"
+                />
+              </label>
               <div className="flex gap-2 sm:col-span-2">
                 <Button type="submit">Guardar producto</Button>
-                <Button variant="secondary" type="button" onClick={() => setAdding(false)}>
+                <Button variant="secondary" type="button" onClick={resetNewProduct}>
                   Cancelar
                 </Button>
               </div>
@@ -219,115 +269,13 @@ export function AdminPanel() {
               No hay productos en esta sección todavía.
             </p>
           )}
-          {visibleProducts.map((product) => {
-            const currentImage = images[product.id] ?? product.image
-            return (
-              <article
-                key={product.id}
-                className="rounded-[1.3rem] border border-pink-soft p-4"
-              >
-                <div className="flex flex-col gap-4 sm:flex-row">
-                  <img
-                    src={currentImage}
-                    alt={`${product.name} ${product.presentation}`}
-                    className="h-28 w-28 rounded-2xl bg-surface object-contain p-2"
-                  />
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-plum">{product.name}</h3>
-                      <span className="text-xs text-ink/50">{stockLabel(product.stock)}</span>
-                    </div>
-                    <p className="text-sm text-ink/60">
-                      {product.presentation} · {product.category}
-                    </p>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      <label className="text-xs font-medium text-plum">
-                        Stock
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={product.stock}
-                          onChange={(event) =>
-                            updateProduct(product.id, { stock: Number(event.target.value) })
-                          }
-                          className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-3 text-sm"
-                        />
-                      </label>
-                      <label className="text-xs font-medium text-plum">
-                        Precio actual
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={product.price}
-                          onChange={(event) =>
-                            updateProduct(product.id, { price: Number(event.target.value) })
-                          }
-                          className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-3 text-sm"
-                        />
-                      </label>
-                      <label className="text-xs font-medium text-plum">
-                        Precio sin descuento
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={product.oldPrice ?? ''}
-                          onChange={(event) =>
-                            updateProduct(product.id, {
-                              oldPrice: event.target.value === '' ? null : Number(event.target.value),
-                            })
-                          }
-                          className="mt-1 h-11 w-full rounded-full border border-pink-soft bg-surface px-3 text-sm"
-                        />
-                      </label>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <input
-                        ref={(node) => {
-                          inputRefs.current[product.id] = node
-                        }}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="sr-only"
-                        onChange={async (event) => {
-                          const file = event.target.files?.[0]
-                          event.target.value = ''
-                          if (!file) {
-                            return
-                          }
-                          setBusyId(product.id)
-                          const error = await replaceProductImage(product.id, file)
-                          setBusyId(null)
-                          setMessage(error ?? `Imagen actualizada: ${product.name}`)
-                        }}
-                      />
-                      <Button
-                        className="px-4"
-                        disabled={busyId === product.id}
-                        onClick={() => inputRefs.current[product.id]?.click()}
-                      >
-                        {busyId === product.id ? 'Guardando…' : 'Cambiar imagen'}
-                      </Button>
-                      {images[product.id] && (
-                        <Button
-                          variant="secondary"
-                          className="px-4"
-                          onClick={async () => {
-                            await restoreProductImage(product.id)
-                            setMessage(`Se restauró la imagen original de ${product.name}`)
-                          }}
-                        >
-                          Restaurar original
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
+          {visibleProducts.map((product) => (
+            <AdminProductEditor
+              key={product.id}
+              product={product}
+              onMessage={setMessage}
+            />
+          ))}
         </div>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">

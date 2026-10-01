@@ -17,6 +17,8 @@ export const ADMIN_LOCK_KEY = 'andromeda-admin-lock-v1'
 export const ADMIN_SESSION_KEY = 'andromeda-admin-session-v1'
 export const ADMIN_IMAGES_DB = 'andromeda-catalog-images'
 export const ADMIN_IMAGES_STORE = 'product-images'
+export const ADMIN_GALLERIES_STORE = 'product-galleries'
+export const ADMIN_MAX_GALLERY_IMAGES = 10
 
 export const ADMIN_ALLOWED_IMAGE_TYPES = [
   'image/jpeg',

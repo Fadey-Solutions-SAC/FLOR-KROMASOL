@@ -20,12 +20,12 @@ type ProductModalProps = {
 
 export function ProductModal({ product, onClose }: ProductModalProps) {
   const { handleAddToCart, handleProductWhatsApp } = useStoreUi()
-  const { images } = useAdmin()
+  const { images, galleries } = useAdmin()
   const { products } = useCatalog()
   const liveProduct = product
     ? (products.find((item) => item.id === product.id) ?? product)
     : null
-  const resolved = liveProduct ? applyCatalogImages(liveProduct, images) : null
+  const resolved = liveProduct ? applyCatalogImages(liveProduct, images, galleries) : null
   const [quantity, setQuantity] = useState(1)
   const [activeImage, setActiveImage] = useState('')
 
@@ -35,7 +35,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
     }
     setQuantity(1)
     setActiveImage(resolved.gallery[0] ?? resolved.image)
-  }, [resolved, images])
+  }, [resolved, images, galleries])
 
   useEffect(() => {
     if (!product) {

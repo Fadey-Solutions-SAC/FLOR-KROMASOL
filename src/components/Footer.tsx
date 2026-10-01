@@ -11,6 +11,7 @@ import { Logo } from './Logo'
 import { Button } from './ui/Button'
 import { useStoreUi } from '../context/StoreUiContext'
 import { useAdmin } from '../context/AdminContext'
+import { withBase } from '../utils/baseUrl'
 
 const LINKS = [
   { label: 'Inicio', href: '/#inicio' },
@@ -79,7 +80,7 @@ export function Footer() {
           <h2 className="font-display text-lg font-semibold">Catálogo de productos</h2>
           <nav className="mt-4 flex flex-col gap-2" aria-label="Pie de página">
             {LINKS.map((link) => (
-              <a key={link.href} href={link.href} className="text-sm text-white/75 hover:text-white">
+              <a key={link.href} href={withBase(link.href)} className="text-sm text-white/75 hover:text-white">
                 {link.label}
               </a>
             ))}

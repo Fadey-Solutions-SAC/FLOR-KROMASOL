@@ -12,13 +12,14 @@ import { ProductCard } from '../components/ProductCard'
 import { ReserveButton } from '../components/ReserveButton'
 import { StockBadge } from '../components/StockBadge'
 import { useStoreUi } from '../context/StoreUiContext'
+import { withBase } from '../utils/baseUrl'
 
 export function ProductPage() {
   const { slug } = useParams()
   const { products, getProductBySlug } = useCatalog()
   const baseProduct = slug ? getProductBySlug(slug) : undefined
-  const { images } = useAdmin()
-  const product = baseProduct ? applyCatalogImages(baseProduct, images) : undefined
+  const { images, galleries } = useAdmin()
+  const product = baseProduct ? applyCatalogImages(baseProduct, images, galleries) : undefined
   const { handleAddToCart, handleProductWhatsApp } = useStoreUi()
   const [quantity, setQuantity] = useState(1)
   const [activeImage, setActiveImage] = useState(product?.gallery[0] ?? product?.image ?? '')
@@ -29,7 +30,7 @@ export function ProductPage() {
     }
     setQuantity(1)
     setActiveImage(product.gallery[0] ?? product.image)
-  }, [product, images])
+  }, [product, images, galleries])
 
   const related = useMemo(
     () => products.filter((item) => item.slug !== product?.slug).slice(0, 3),
@@ -41,7 +42,7 @@ export function ProductPage() {
       <section className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl font-bold text-plum">Producto no encontrado</h1>
         <p className="mt-3 text-ink/70">Es posible que el enlace haya cambiado.</p>
-        <Button className="mt-6" href="/#catalogo">
+        <Button className="mt-6" href={withBase('/#catalogo')}>
           Volver al catálogo
         </Button>
       </section>
@@ -60,7 +61,7 @@ export function ProductPage() {
       <p className="text-sm text-ink/50">
         <Link to="/" className="hover:text-magenta">Inicio</Link>
         <span> / </span>
-        <a href="/#catalogo" className="hover:text-magenta">Catálogo</a>
+        <a href={withBase('/#catalogo')} className="hover:text-magenta">Catálogo</a>
         <span> / </span>
         <span className="text-plum">{product.name}</span>
       </p>

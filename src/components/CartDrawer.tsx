@@ -7,6 +7,7 @@ import { useStoreUi } from '../context/StoreUiContext'
 import { formatPrice } from '../utils/format'
 import { Button } from './ui/Button'
 import { CartItem } from './CartItem'
+import { withBase } from '../utils/baseUrl'
 
 type CartDrawerProps = {
   open: boolean
@@ -83,7 +84,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             <Button
               className="mt-6"
               onClick={onClose}
-              href="/#catalogo"
+              href={withBase('/#catalogo')}
             >
               Ver catálogo
             </Button>

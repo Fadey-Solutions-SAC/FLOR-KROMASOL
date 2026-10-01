@@ -1,19 +1,24 @@
 import {
   ADMIN_ALLOWED_IMAGE_TYPES,
+  ADMIN_GALLERIES_STORE,
   ADMIN_IMAGES_DB,
   ADMIN_IMAGES_STORE,
   ADMIN_MAX_IMAGE_BYTES,
 } from '../config/admin'
 
 export type CatalogImageMap = Record<number, string>
+export type CatalogGalleryMap = Record<number, string[]>
 
 function openImageDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(ADMIN_IMAGES_DB, 1)
+    const request = indexedDB.open(ADMIN_IMAGES_DB, 2)
     request.onupgradeneeded = () => {
       const db = request.result
       if (!db.objectStoreNames.contains(ADMIN_IMAGES_STORE)) {
         db.createObjectStore(ADMIN_IMAGES_STORE)
+      }
+      if (!db.objectStoreNames.contains(ADMIN_GALLERIES_STORE)) {
+        db.createObjectStore(ADMIN_GALLERIES_STORE)
       }
     }
     request.onsuccess = () => resolve(request.result)
@@ -62,6 +67,44 @@ export async function deleteCatalogImage(productId: number) {
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
     tx.objectStore(ADMIN_IMAGES_STORE).delete(productId)
+  })
+}
+
+export async function loadCatalogGalleries(): Promise<CatalogGalleryMap> {
+  const db = await openImageDb()
+  if (!db.objectStoreNames.contains(ADMIN_GALLERIES_STORE)) {
+    return {}
+  }
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ADMIN_GALLERIES_STORE, 'readonly')
+    const store = tx.objectStore(ADMIN_GALLERIES_STORE)
+    const request = store.getAllKeys()
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const keys = request.result as IDBValidKey[]
+      const values = store.getAll()
+      values.onerror = () => reject(values.error)
+      values.onsuccess = () => {
+        const map: CatalogGalleryMap = {}
+        keys.forEach((key, index) => {
+          if (typeof key === 'number' && Array.isArray(values.result[index])) {
+            map[key] = values.result[index].filter((item: unknown) => typeof item === 'string')
+          }
+        })
+        resolve(map)
+      }
+    }
+  })
+}
+
+export async function saveCatalogGallery(productId: number, images: string[]) {
+  const db = await openImageDb()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(ADMIN_GALLERIES_STORE, 'readwrite')
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.objectStore(ADMIN_GALLERIES_STORE).put(images, productId)
   })
 }
 

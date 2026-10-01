@@ -6,11 +6,12 @@ import { CartProvider } from './context/CartContext.tsx'
 import { StoreUiProvider } from './context/StoreUiContext.tsx'
 import { AdminProvider } from './context/AdminContext.tsx'
 import App from './App.tsx'
+import { routerBasename } from './utils/baseUrl.ts'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename()}>
       <CatalogProvider>
         <CartProvider>
           <StoreUiProvider>

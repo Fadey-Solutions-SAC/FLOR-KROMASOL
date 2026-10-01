@@ -2,6 +2,7 @@ import { Button } from './ui/Button'
 import { BerryMotif } from './decor/BerryMotif'
 import { useStoreUi } from '../context/StoreUiContext'
 import { WhatsAppIcon } from './icons/WhatsAppIcon'
+import { withBase } from '../utils/baseUrl'
 
 export function Hero() {
   const { handleWhatsAppInfo } = useStoreUi()
@@ -38,7 +39,7 @@ export function Hero() {
           <div className="absolute inset-8 rounded-full bg-pink-soft/70 blur-3xl" />
           <figure className="relative overflow-hidden rounded-[2rem] bg-white p-4 shadow-[0_18px_40px_rgba(91,18,72,0.08)]">
             <img
-              src="/images/hero/hero-andromeda.jpg"
+              src={withBase('/images/hero/hero-andromeda.jpg')}
               alt="Andromeda by Kromasol junto a un batido de fresa"
               className="h-full w-full rounded-[1.4rem] object-cover"
               width={960}

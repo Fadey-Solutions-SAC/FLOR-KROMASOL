@@ -4,6 +4,7 @@ import { Menu, ShoppingBag, X } from 'lucide-react'
 import { Logo } from './Logo'
 import { useCart } from '../hooks/useCart'
 import { useStoreUi } from '../context/StoreUiContext'
+import { withBase } from '../utils/baseUrl'
 
 const NAV_ITEMS = [
   { label: 'Inicio', href: '/#inicio' },
@@ -50,7 +51,7 @@ export function Header() {
           {NAV_ITEMS.map((item) => (
             <a
               key={item.href}
-              href={item.href}
+              href={withBase(item.href)}
               className="text-sm font-medium text-ink/80 transition duration-200 hover:text-magenta"
             >
               {item.label}
@@ -93,7 +94,7 @@ export function Header() {
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
-                href={item.href}
+                href={withBase(item.href)}
                 className="rounded-xl px-3 py-3 text-base font-medium text-plum hover:bg-pink-soft/50"
                 onClick={() => setMenuOpen(false)}
               >

@@ -10,6 +10,7 @@ import {
 } from 'react'
 import {
   ADMIN_MAX_CREDENTIAL_LENGTH,
+  ADMIN_MAX_GALLERY_IMAGES,
   ADMIN_MIN_AUTH_DELAY_MS,
   ADMIN_TAP_COUNT,
   ADMIN_TAP_WINDOW_MS,
@@ -28,11 +29,14 @@ import {
   compressCatalogImage,
   deleteCatalogImage,
   isAllowedImageFile,
+  loadCatalogGalleries,
   loadCatalogImages,
+  saveCatalogGallery,
   saveCatalogImage,
+  type CatalogGalleryMap,
   type CatalogImageMap,
 } from '../utils/catalogImages'
-import { setCatalogImageOverrides } from '../utils/productMedia'
+import { setCatalogGalleryOverrides, setCatalogImageOverrides } from '../utils/productMedia'
 
 type AdminContextValue = {
   loginOpen: boolean
@@ -41,6 +45,7 @@ type AdminContextValue = {
   authError: string | null
   authBusy: boolean
   images: CatalogImageMap
+  galleries: CatalogGalleryMap
   openLoginFromSecret: () => void
   closeLogin: () => void
   closePanel: () => void
@@ -48,6 +53,8 @@ type AdminContextValue = {
   logout: () => void
   replaceProductImage: (productId: number, file: File) => Promise<string | null>
   restoreProductImage: (productId: number) => Promise<void>
+  addGalleryImage: (productId: number, file: File) => Promise<string | null>
+  removeGalleryImage: (productId: number, src: string) => Promise<void>
   handleSecretTaps: (event: React.MouseEvent | React.PointerEvent) => void
 }
 
@@ -60,17 +67,20 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [images, setImages] = useState<CatalogImageMap>({})
+  const [galleries, setGalleries] = useState<CatalogGalleryMap>({})
   const tapsRef = useRef({ count: 0, last: 0 })
 
   useEffect(() => {
     let active = true
-    loadCatalogImages()
-      .then((map) => {
+    Promise.all([loadCatalogImages(), loadCatalogGalleries()])
+      .then(([imageMap, galleryMap]) => {
         if (!active) {
           return
         }
-        setImages(map)
-        setCatalogImageOverrides(map)
+        setImages(imageMap)
+        setGalleries(galleryMap)
+        setCatalogImageOverrides(imageMap)
+        setCatalogGalleryOverrides(galleryMap)
       })
       .catch(() => undefined)
 
@@ -82,6 +92,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setCatalogImageOverrides(images)
   }, [images])
+
+  useEffect(() => {
+    setCatalogGalleryOverrides(galleries)
+  }, [galleries])
 
   const openLoginFromSecret = useCallback(() => {
     if (hasAdminSession()) {
@@ -202,6 +216,39 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const addGalleryImage = useCallback(async (productId: number, file: File) => {
+    if (!hasAdminSession()) {
+      return 'Sesión expirada. Vuelve a ingresar.'
+    }
+    if (!isAllowedImageFile(file)) {
+      return 'Solo se aceptan JPG, PNG o WEBP de hasta 8 MB.'
+    }
+
+    const current = galleries[productId] ?? []
+    if (current.length >= ADMIN_MAX_GALLERY_IMAGES) {
+      return `Puedes agregar hasta ${ADMIN_MAX_GALLERY_IMAGES} imágenes extra de presentación.`
+    }
+
+    try {
+      const dataUrl = await compressCatalogImage(file)
+      const next = [...current, dataUrl]
+      await saveCatalogGallery(productId, next)
+      setGalleries((map) => ({ ...map, [productId]: next }))
+      return null
+    } catch {
+      return 'No se pudo guardar la imagen. Intenta con otro archivo.'
+    }
+  }, [galleries])
+
+  const removeGalleryImage = useCallback(async (productId: number, src: string) => {
+    if (!hasAdminSession()) {
+      return
+    }
+    const next = (galleries[productId] ?? []).filter((item) => item !== src)
+    await saveCatalogGallery(productId, next)
+    setGalleries((map) => ({ ...map, [productId]: next }))
+  }, [galleries])
+
   const value = useMemo<AdminContextValue>(
     () => ({
       loginOpen,
@@ -210,6 +257,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       authError,
       authBusy,
       images,
+      galleries,
       openLoginFromSecret,
       closeLogin: () => setLoginOpen(false),
       closePanel: () => setPanelOpen(false),
@@ -217,12 +265,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       logout,
       replaceProductImage,
       restoreProductImage,
+      addGalleryImage,
+      removeGalleryImage,
       handleSecretTaps,
     }),
     [
+      addGalleryImage,
       authBusy,
       authError,
       authenticated,
+      galleries,
       handleSecretTaps,
       images,
       login,
@@ -230,6 +282,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       logout,
       openLoginFromSecret,
       panelOpen,
+      removeGalleryImage,
       replaceProductImage,
       restoreProductImage,
     ],

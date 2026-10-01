@@ -8,6 +8,7 @@ export type CatalogPatch = Partial<
     Product,
     | 'name'
     | 'presentation'
+    | 'flavor'
     | 'price'
     | 'oldPrice'
     | 'stock'
@@ -15,6 +16,10 @@ export type CatalogPatch = Partial<
     | 'categories'
     | 'shortDescription'
     | 'description'
+    | 'features'
+    | 'details'
+    | 'gallery'
+    | 'image'
     | 'featured'
     | 'isNew'
   >
@@ -36,6 +41,7 @@ export function syncProductFlags(product: Product): Product {
     stock,
     price,
     oldPrice,
+    flavor: product.flavor?.trim() || undefined,
     available: stock > 0,
     offer: oldPrice !== null,
   }
@@ -109,13 +115,24 @@ export function persistCatalog(liveProducts: Product[]) {
     const patch: CatalogPatch = {}
     if (synced.name !== original.name) patch.name = synced.name
     if (synced.presentation !== original.presentation) patch.presentation = synced.presentation
+    if ((synced.flavor ?? '') !== (original.flavor ?? '')) {
+      patch.flavor = synced.flavor?.trim() ? synced.flavor.trim() : ''
+    }
     if (synced.price !== original.price) patch.price = synced.price
     if (synced.oldPrice !== original.oldPrice) patch.oldPrice = synced.oldPrice
     if (synced.stock !== original.stock) patch.stock = synced.stock
     if (synced.category !== original.category) patch.category = synced.category
+    if (!sameList(synced.categories, original.categories)) patch.categories = synced.categories
     if (synced.shortDescription !== original.shortDescription) {
       patch.shortDescription = synced.shortDescription
     }
+    if (synced.description !== original.description) patch.description = synced.description
+    if (!sameList(synced.features, original.features)) patch.features = synced.features
+    if (!sameList(synced.details, original.details)) patch.details = synced.details
+    const persistableGallery = persistableImages(synced.gallery)
+    if (!sameList(persistableGallery, original.gallery)) patch.gallery = persistableGallery
+    if (synced.featured !== original.featured) patch.featured = synced.featured
+    if (synced.isNew !== original.isNew) patch.isNew = synced.isNew
     updates[String(synced.id)] = patch
   })
 
@@ -124,6 +141,21 @@ export function persistCatalog(liveProducts: Product[]) {
 
 export function isInStock(product: Product): boolean {
   return product.stock > 0
+}
+
+function sameList(left: string[] = [], right: string[] = []): boolean {
+  return left.length === right.length && left.every((item, index) => item === right[index])
+}
+
+function persistableImages(images: string[] = []): string[] {
+  return images.filter((src) => src && !src.startsWith('data:'))
+}
+
+export function linesToList(value: string): string[] {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 export function stockLabel(stock: number): string {

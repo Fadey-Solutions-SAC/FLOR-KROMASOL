@@ -19,11 +19,15 @@ import {
 type NewProductInput = {
   name: string
   presentation: string
+  flavor?: string
   category: string
   price: number
   oldPrice: number | null
   stock: number
   shortDescription: string
+  description?: string
+  features?: string[]
+  details?: string[]
 }
 
 type CatalogContextValue = {
@@ -76,6 +80,15 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         ? `${slugBase}-${id}`
         : slugBase
 
+      const shortDescription =
+        input.shortDescription.trim() || 'Producto Andromeda para tu rutina diaria.'
+      const description =
+        input.description?.trim() ||
+        shortDescription ||
+        'Producto del catálogo Andromeda. Consulta detalles y disponibilidad por WhatsApp.'
+      const features = (input.features ?? []).map((item) => item.trim()).filter(Boolean)
+      const details = (input.details ?? []).map((item) => item.trim()).filter(Boolean)
+
       const product = syncProductFlags({
         id,
         name,
@@ -83,18 +96,16 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         category,
         categories: [category],
         presentation: presentation || '1 unidad',
+        flavor: input.flavor?.trim() || undefined,
         price: input.price,
         oldPrice: input.oldPrice,
         stock: input.stock,
         image: '/images/products/andromeda-630g.jpg',
         gallery: ['/images/products/andromeda-630g.jpg'],
-        shortDescription:
-          input.shortDescription.trim() || 'Producto Andromeda para tu rutina diaria.',
-        description:
-          input.shortDescription.trim() ||
-          'Producto del catálogo Andromeda. Consulta detalles y disponibilidad por WhatsApp.',
-        features: ['Andromeda'],
-        details: ['Consulta las indicaciones del envase.'],
+        shortDescription,
+        description,
+        features: features.length > 0 ? features : ['Andromeda'],
+        details: details.length > 0 ? details : ['Consulta las indicaciones del envase.'],
         featured: false,
         offer: false,
         isNew: true,
