@@ -29,6 +29,7 @@ function safePublicImagePath(root: string, urlPath: string): string | null {
 function catalogHandler(root: string) {
   const uploadsDir = path.join(root, 'public', 'images', 'uploads')
   const publicCatalogPath = path.join(root, 'public', 'catalog.json')
+  const srcCatalogPath = path.join(root, 'src', 'data', 'catalog.json')
 
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const url = req.url?.split('?')[0] ?? ''
@@ -89,7 +90,9 @@ function catalogHandler(root: string) {
             return
           }
           const json = `${JSON.stringify({ products: payload.products }, null, 2)}\n`
+          fs.mkdirSync(path.dirname(srcCatalogPath), { recursive: true })
           fs.writeFileSync(publicCatalogPath, json, 'utf8')
+          fs.writeFileSync(srcCatalogPath, json, 'utf8')
           sendJson(res, 200, { ok: true })
           return
         }

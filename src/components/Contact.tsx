@@ -11,7 +11,7 @@ import { openWhatsApp } from '../utils/whatsapp'
 import { WhatsAppIcon } from './icons/WhatsAppIcon'
 
 export function Contact() {
-  const { openConfig, handleWhatsAppInfo } = useStoreUi()
+  const { openConfig } = useStoreUi()
 
   const handleContact = () => {
     if (!isWhatsAppConfigured()) {
@@ -32,7 +32,7 @@ export function Contact() {
             Escríbenos por WhatsApp y te ayudaremos con tu pedido, disponibilidad
             y coordinación de entrega.
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-6">
           <Button
             variant="whatsapp"
             icon={<WhatsAppIcon />}
@@ -40,21 +40,9 @@ export function Contact() {
           >
             Hablar por WhatsApp
           </Button>
-          <Button variant="secondary" onClick={handleWhatsAppInfo}>
-            Consultar por WhatsApp
-          </Button>
           </div>
         </div>
         <div className="space-y-3">
-          <article className="rounded-[1.3rem] bg-white p-5">
-            <div className="flex items-start gap-3">
-              <WhatsAppIcon className="text-whatsapp" size={20} />
-              <div>
-                <h3 className="font-semibold text-plum">WhatsApp</h3>
-                <p className="mt-1 text-sm text-ink/65">Atención directa para armar tu pedido.</p>
-              </div>
-            </div>
-          </article>
           <article className="rounded-[1.3rem] bg-white p-5">
             <div className="flex items-start gap-3">
               <Clock3 className="text-magenta" size={20} />

@@ -49,7 +49,11 @@
       "name": "Andromeda Doypack",
       "slug": "andromeda-doypack-630g",
       "category": "Suplementos",
-      "categories": ["Suplementos", "Vitaminas y minerales", "Bienestar"],
+      "categories": [
+        "Suplementos",
+        "Vitaminas y minerales",
+        "Bienestar"
+      ],
       "presentation": "630 g",
       "flavor": "Fresas con crema",
       "price": 164.9,
@@ -88,7 +92,12 @@
       "name": "Andromeda Colosal",
       "slug": "andromeda-colosal-2kg",
       "category": "Proteínas",
-      "categories": ["Proteínas", "Suplementos", "Fibra", "Bienestar"],
+      "categories": [
+        "Proteínas",
+        "Suplementos",
+        "Fibra",
+        "Bienestar"
+      ],
       "presentation": "2 kg",
       "flavor": "Fresas con crema",
       "price": 489.9,
@@ -127,7 +136,11 @@
       "name": "Pack 2 Andromeda",
       "slug": "pack-2-andromeda-630g",
       "category": "Bienestar",
-      "categories": ["Bienestar", "Suplementos", "Proteínas"],
+      "categories": [
+        "Bienestar",
+        "Suplementos",
+        "Proteínas"
+      ],
       "presentation": "2 x 630 g",
       "flavor": "Fresas con crema",
       "price": 319.9,
@@ -166,7 +179,11 @@
       "name": "Pack 3 Andromeda",
       "slug": "pack-3-andromeda-630g",
       "category": "Bienestar",
-      "categories": ["Bienestar", "Suplementos", "Fibra"],
+      "categories": [
+        "Bienestar",
+        "Suplementos",
+        "Fibra"
+      ],
       "presentation": "3 x 630 g",
       "flavor": "Fresas con crema",
       "price": 479.9,
@@ -197,6 +214,44 @@
       "offer": true,
       "isNew": false,
       "stock": 3,
+      "available": true
+    },
+    {
+      "id": 6,
+      "name": "MINI FRESA",
+      "slug": "mini-fresa-340g",
+      "category": "Suplementos",
+      "categories": [
+        "Suplementos"
+      ],
+      "presentation": "340 g",
+      "flavor": "Fresas con crema",
+      "price": 129.9,
+      "oldPrice": 140,
+      "stock": 1,
+      "image": "/images/products/mini-fresa-340g.jpg",
+      "gallery": [
+        "/images/products/mini-fresa-340g.jpg",
+        "/images/lifestyle/andromeda-smoothie.jpg",
+        "/images/lifestyle/andromeda-berries.jpg"
+      ],
+      "shortDescription": "Para tu dia con energia",
+      "description": "Presentación mini Andromeda de 340 g, sabor fresa. Para complementar tu alimentación y tu rutina diaria.",
+      "features": [
+        "Vitaminas",
+        "Minerales",
+        "Proteína",
+        "Fibra",
+        "Sabor fresa"
+      ],
+      "details": [
+        "Suplemento alimenticio en polvo para preparar batidos.",
+        "Presentación mini de 340 g.",
+        "Consulta siempre las indicaciones del envase."
+      ],
+      "featured": false,
+      "offer": true,
+      "isNew": true,
       "available": true
     }
   ]
