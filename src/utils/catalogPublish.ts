@@ -5,16 +5,13 @@ export async function publishCatalogImage(
   productId: number,
   dataUrl: string,
   kind: 'cover' | 'gallery',
+  originalPath?: string,
 ): Promise<string | null> {
-  if (!import.meta.env.DEV) {
-    return null
-  }
-
   try {
     const response = await fetch('/__catalog/image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId, kind, dataUrl }),
+      body: JSON.stringify({ productId, kind, dataUrl, originalPath }),
     })
     if (!response.ok) {
       return null

@@ -38,6 +38,7 @@ import {
 } from '../utils/catalogImages'
 import { setCatalogGalleryOverrides, setCatalogImageOverrides } from '../utils/productMedia'
 import { publishCatalogImage } from '../utils/catalogPublish'
+import { stripBase } from '../utils/baseUrl'
 import { useCatalog } from './CatalogContext'
 import { products as baseProducts } from '../data/products'
 
@@ -100,6 +101,38 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setCatalogGalleryOverrides(galleries)
   }, [galleries])
+
+  const migratedRef = useRef(false)
+  useEffect(() => {
+    if (migratedRef.current || !import.meta.env.DEV) {
+      return
+    }
+    const pending = Object.entries(images).filter(([, src]) => src.startsWith('data:'))
+    if (pending.length === 0) {
+      return
+    }
+    migratedRef.current = true
+    void (async () => {
+      for (const [id, dataUrl] of pending) {
+        const productId = Number(id)
+        const product = products.find((item) => item.id === productId)
+        const url = await publishCatalogImage(productId, dataUrl, 'cover', product?.image)
+        if (!url) {
+          continue
+        }
+        const nextGallery = product
+          ? [url, ...product.gallery.filter((src) => src !== product.image && src !== url)]
+          : [url]
+        updateProduct(productId, { image: url, gallery: nextGallery })
+        await deleteCatalogImage(productId)
+        setImages((current) => {
+          const next = { ...current }
+          delete next[productId]
+          return next
+        })
+      }
+    })()
+  }, [images, products, updateProduct])
 
   const openLoginFromSecret = useCallback(() => {
     if (hasAdminSession()) {
@@ -200,25 +233,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     try {
       const dataUrl = await compressCatalogImage(file)
-      const published = await publishCatalogImage(productId, dataUrl, 'cover')
-      const url = published ?? dataUrl
       const product = products.find((item) => item.id === productId)
-      const nextGallery = product
-        ? [url, ...product.gallery.filter((src) => src !== product.image && src !== url)]
-        : [url]
-
-      if (published) {
-        await deleteCatalogImage(productId)
-        setImages((current) => {
-          const next = { ...current }
-          delete next[productId]
-          return next
-        })
-        updateProduct(productId, { image: published, gallery: nextGallery })
-      } else {
+      const published = await publishCatalogImage(productId, dataUrl, 'cover', product?.image)
+      if (!published) {
         await saveCatalogImage(productId, dataUrl)
         setImages((current) => ({ ...current, [productId]: dataUrl }))
+        return import.meta.env.DEV
+          ? 'No se pudo guardar la foto en el proyecto. Recarga e intenta otra vez.'
+          : 'Esta foto solo se ve aquí. Ábrela con npm run dev y cámbiala de nuevo para que salga en la web pública.'
       }
+
+      const nextGallery = product
+        ? [published, ...product.gallery.filter((src) => src !== product.image && src !== published)]
+        : [published]
+
+      await deleteCatalogImage(productId)
+      setImages((current) => {
+        const next = { ...current }
+        delete next[productId]
+        return next
+      })
+      updateProduct(productId, { image: published, gallery: nextGallery })
       return null
     } catch {
       return 'No se pudo guardar la imagen. Intenta con otro archivo.'
@@ -266,7 +301,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const next = [...extras, dataUrl]
       await saveCatalogGallery(productId, next)
       setGalleries((map) => ({ ...map, [productId]: next }))
-      return null
+      return import.meta.env.DEV
+        ? null
+        : 'Esta foto extra solo se ve aquí. Cámbiala con npm run dev para publicarla.'
     } catch {
       return 'No se pudo guardar la imagen. Intenta con otro archivo.'
     }
@@ -279,7 +316,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const next = (galleries[productId] ?? []).filter((item) => item !== src)
     await saveCatalogGallery(productId, next)
     setGalleries((map) => ({ ...map, [productId]: next }))
-  }, [galleries])
+    const product = products.find((item) => item.id === productId)
+    if (product) {
+      updateProduct(productId, {
+        gallery: product.gallery.filter((item) => item !== src && item !== stripBase(src)),
+      })
+    }
+  }, [galleries, products, updateProduct])
 
   const value = useMemo<AdminContextValue>(
     () => ({
