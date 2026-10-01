@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ImagePlus, Trash2 } from 'lucide-react'
+import { ImagePlus, Pencil, Trash2 } from 'lucide-react'
 import { PRODUCT_SECTIONS } from '../../data/categories'
 import type { Product } from '../../types'
 import { Button } from '../ui/Button'
@@ -7,6 +7,7 @@ import { useAdmin } from '../../context/AdminContext'
 import { useCatalog } from '../../context/CatalogContext'
 import { applyCatalogImages } from '../../utils/productMedia'
 import { stripBase } from '../../utils/baseUrl'
+import { formatPrice } from '../../utils/format'
 import { linesToList, stockLabel } from '../../utils/catalogStore'
 
 const fieldClass =
@@ -16,10 +17,17 @@ const areaClass =
 
 type AdminProductEditorProps = {
   product: Product
+  editing: boolean
+  onToggle: () => void
   onMessage: (message: string) => void
 }
 
-export function AdminProductEditor({ product, onMessage }: AdminProductEditorProps) {
+export function AdminProductEditor({
+  product,
+  editing,
+  onToggle,
+  onMessage,
+}: AdminProductEditorProps) {
   const {
     images,
     galleries,
@@ -85,16 +93,36 @@ export function AdminProductEditor({ product, onMessage }: AdminProductEditorPro
   }
 
   return (
-    <article className="rounded-[1.3rem] border border-pink-soft p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-semibold text-plum">{product.name}</h3>
-        <span className="text-xs text-ink/50">{stockLabel(product.stock)}</span>
+    <article className="rounded-[1.3rem] border border-pink-soft p-3 sm:p-4">
+      <div className="flex items-center gap-3">
+        <img
+          src={resolved.image}
+          alt=""
+          className="h-14 w-14 shrink-0 rounded-xl border border-pink-soft bg-surface object-contain p-1"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate font-semibold text-plum">{product.name}</h3>
+            <span className="text-xs text-ink/50">{stockLabel(product.stock)}</span>
+          </div>
+          <p className="truncate text-sm text-ink/60">
+            {product.presentation}
+            {product.flavor ? ` · ${product.flavor}` : ''} · {product.category}
+          </p>
+          <p className="text-sm font-semibold text-magenta">{formatPrice(product.price)}</p>
+        </div>
+        <Button
+          variant={editing ? 'secondary' : 'primary'}
+          className="shrink-0 px-4"
+          icon={editing ? undefined : <Pencil size={16} />}
+          onClick={onToggle}
+        >
+          {editing ? 'Cerrar' : 'Editar'}
+        </Button>
       </div>
-      <p className="text-sm text-ink/60">
-        {product.presentation}
-        {product.flavor ? ` · ${product.flavor}` : ''} · {product.category}
-      </p>
 
+      {editing && (
+        <>
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-magenta">
           Imágenes de presentación
@@ -347,6 +375,8 @@ export function AdminProductEditor({ product, onMessage }: AdminProductEditorPro
           Destacado
         </label>
       </div>
+        </>
+      )}
     </article>
   )
 }

@@ -11,6 +11,7 @@ export function AdminPanel() {
   const { panelOpen, closePanel, logout } = useAdmin()
   const { products, addProduct } = useCatalog()
   const [section, setSection] = useState<(typeof CATEGORIES)[number]>('Todos')
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -71,7 +72,7 @@ export function AdminPanel() {
               Administrar catálogo
             </h2>
             <p className="mt-1 text-sm text-ink/65">
-              Edita toda la ficha del producto: textos, precios, stock e imágenes de presentación.
+              Pulsa Editar en cada producto para cambiar textos, precios, stock e imágenes.
             </p>
           </div>
           <button
@@ -89,7 +90,10 @@ export function AdminPanel() {
             <button
               key={item}
               type="button"
-              onClick={() => setSection(item)}
+              onClick={() => {
+                setSection(item)
+                setEditingId(null)
+              }}
               className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
                 item === section ? 'bg-magenta text-white' : 'bg-surface text-plum'
               }`}
@@ -263,7 +267,7 @@ export function AdminPanel() {
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {visibleProducts.length === 0 && (
             <p className="rounded-2xl bg-surface px-4 py-8 text-center text-sm text-ink/60">
               No hay productos en esta sección todavía.
@@ -273,6 +277,10 @@ export function AdminPanel() {
             <AdminProductEditor
               key={product.id}
               product={product}
+              editing={editingId === product.id}
+              onToggle={() =>
+                setEditingId((current) => (current === product.id ? null : product.id))
+              }
               onMessage={setMessage}
             />
           ))}
