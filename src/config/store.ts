@@ -19,7 +19,7 @@ export const SEO_DESCRIPTION = STORE_DESCRIPTION
 export const WHATSAPP_NUMBER = '51975697019'
 
 export const CONTACT_HOURS = 'Lunes a sábado, 9:00 a.m. a 8:00 p.m.'
-export const DELIVERY_ZONE = 'Lima y provincias (coordinamos la entrega por WhatsApp)'
+export const DELIVERY_ZONE = 'Tingo, Luya, Amazonas'
 
 /** Deja vacío para ocultar el botón de esa red. */
 export const INSTAGRAM_URL = ''
